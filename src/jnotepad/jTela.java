@@ -2,6 +2,7 @@ package jnotepad;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -27,11 +28,16 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
 /**
- *
+ * Simple text editor
  * @author Gustavo Simon
  */
 public class jTela extends JFrame {
 
+    JTextArea jText;
+    JLabel characters;
+    JLabel modified;
+    String previousText = "";
+            
     public void montarTela() {
 // Indica o título, o tamanho da janela e que deve começar no centro
         setTitle("jNotepad");
@@ -55,13 +61,12 @@ public class jTela extends JFrame {
         fileMenu.add(exit);
         editMenu.add(about);
 // Cria a área de texto para digitação
-        JTextArea jText = new JTextArea();
+        jText = new JTextArea();
         jText.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         
         jText.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) {
-                System.out.println(contaCaracteres(jText.getText()));
-                
+                updateFooter();
             }
         });        
 // Cria o listener para a opção de abrir um arquivo para edição
@@ -72,8 +77,10 @@ public class jTela extends JFrame {
                 file.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 int i = file.showOpenDialog(null); 
                 if (i == JFileChooser.APPROVE_OPTION) {
-                    jText.setText(leArquivo(file.getSelectedFile()));
+                    jText.setText(readArquivo(file.getSelectedFile()));
+                    previousText = jText.getText();
                 }
+                updateFooter();
             }
         });
 // Cria o listener para a opção de salvar o arquivo
@@ -85,18 +92,18 @@ public class jTela extends JFrame {
                 int i = file.showSaveDialog(null); 
                 if (i == JFileChooser.APPROVE_OPTION) {
                     try {
-                        gravaArquivo(file.getSelectedFile().getPath(), jText.getText());
+                        writeArquivo(file.getSelectedFile().getPath(), jText.getText());
                     } catch (IOException ex) {
                         Logger.getLogger(jTela.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
+                updateFooter();                
             }
         });
 // Cria o listener para a opção de sair do programa        
         exit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ae) {
-                setVisible(false);
                 System.exit(0);
             }
         });
@@ -107,45 +114,41 @@ public class jTela extends JFrame {
                 JOptionPane.showMessageDialog(null, "JNotepad: editor de texto simples.\nConstruído na disciplina de Programação III.", "Sobre o JNotepad", WIDTH, null);
             }
         });
+ 
 // Cria um border layout
         setLayout(new BorderLayout());
-        JLabel caracteres = new JLabel("Caracteres: ");
-        JLabel qtdlinhas = new JLabel();
-        qtdlinhas.setText("1");
-        JLabel modificado = new JLabel("Modificado: ");
-        JLabel modif = new JLabel();
+        characters = new JLabel("Caracteres: 0");
+        modified = new JLabel("Modificado: não");
         Container ct = getContentPane();
         JPanel center = new JPanel();
         ct.add(jText, BorderLayout.CENTER);
         JPanel footer = new JPanel();
-        footer.setLayout(new BorderLayout());
-        footer.add(caracteres, BorderLayout.WEST);
-        footer.add(qtdlinhas);
-        footer.add(modificado);
-        footer.add(modif);
+        footer.setLayout(new FlowLayout(FlowLayout.LEFT));
+        footer.add(characters);
+        footer.add(modified);
         ct.add(footer, BorderLayout.SOUTH);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
     }
     
 // Le o arquivo e retorna o conteúdo    
-    public String leArquivo(File arquivo) {
+    public String readArquivo(File arquivo) {
         BufferedReader buffRead = null;
         try {
             buffRead = new BufferedReader(new FileReader(arquivo.getPath()));
         } catch (FileNotFoundException ex) {
             Logger.getLogger(jTela.class.getName()).log(Level.SEVERE, null, ex);
         }
-        String linha = "", texto = "";
+        String line = "", text = "";
         while (true) {
             try {
-                linha = buffRead.readLine();
-                if (linha == null) {
+                line = buffRead.readLine();
+                if (line == null) {
                     break;
                 }
-                if (!"".equals(texto)){
-                    texto += "\n";
+                if (!"".equals(text)){
+                    text += "\n";
                 }
-                texto += linha;
+                text += line;
             } catch (IOException ex) {
                 Logger.getLogger(jTela.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -155,31 +158,22 @@ public class jTela extends JFrame {
         } catch (IOException ex) {
             Logger.getLogger(jTela.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return texto;
+        return text;
     }
 // Grava o conteúdo digitado em um arquivo    
-    public void gravaArquivo (String path, String texto) throws IOException{
+    public void writeArquivo (String path, String texto) throws IOException{
         FileWriter arquivo = new FileWriter(path);
         PrintWriter gravarArq = new PrintWriter(arquivo);
         gravarArq.printf(texto);
         arquivo.close();
     }
-// Conta o numero de caracteres da string recebida por parâmetro
-    public int contaCaracteres(String texto) {
-        int letras = 0;
-        for(int i = 0; i < texto.length(); i++){
-            if(isLetter(texto.charAt(i))){
-                letras++;
-            }
-        }    
-        return letras;
-    }
-// Retorna se o caractrete é uma letra
-    public boolean isLetter(char ch) {
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            return true;
+    
+    public void updateFooter() {
+        characters.setText("Caracteres: " + jText.getText().length());
+        if (previousText.equals(jText.getText())) {
+            modified.setText("Modificado: não");
         } else {
-            return false;
+            modified.setText("Modificado: sim");
         }
     }
 }
